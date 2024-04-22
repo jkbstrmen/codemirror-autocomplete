@@ -2,6 +2,7 @@ import {Completion, CompletionSource} from "./completion"
 import {Info} from "./theme"
 import {Facet, combineConfig, EditorState} from "@codemirror/state"
 import {EditorView, Rect, Direction} from "@codemirror/view"
+import {FuzzyMatcher, FilterMatcher} from "./filter";
 
 export interface CompletionConfig {
   /// When enabled (defaults to true), autocompletion will start
@@ -79,7 +80,12 @@ export interface CompletionConfig {
   /// of completions and only show those that start with the text the
   /// user typed. Only takes effect for results where
   /// [`filter`](#autocomplete.CompletionResult.filter) isn't false.
+  /**
+   * @deprecated - use filterMatcher instead
+   */
   filterStrict?: boolean
+  /// TODO - documentation
+  filterMatcher?: FilterMatcher
   /// By default, commands relating to an open completion only take
   /// effect 75 milliseconds after the completion opened, so that key
   /// presses made before the user is aware of the tooltip don't go to
@@ -110,6 +116,7 @@ export const completionConfig = Facet.define<CompletionConfig, Required<Completi
       addToOptions: [],
       positionInfo: defaultPositionInfo as any,
       filterStrict: false,
+      filterMatcher: new FuzzyMatcher(),
       compareCompletions: (a, b) => a.label.localeCompare(b.label),
       interactionDelay: 75,
       updateSyncTime: 100

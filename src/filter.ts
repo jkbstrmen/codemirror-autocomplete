@@ -12,10 +12,24 @@ const enum Penalty {
 
 const enum Tp { NonWord, Upper, Lower }
 
+export interface FilterMatcher {
+  setPattern(pattern: string)
+
+  // Matches a given word (completion) against the pattern (input).
+  // Will return a boolean indicating whether there was a match and,
+  // on success, set `this.score` to the score, `this.matched` to an
+  // array of `from, to` pairs indicating the matched parts of `word`.
+  //
+  // The score is a number that is more negative the worse the match
+  // is. See `Penalty` above.
+  match(word: string): {score: number, matched: readonly number[]} | null
+}
+
 // A pattern matcher for fuzzy completion matching. Create an instance
 // once for a pattern, and then use that to match any number of
 // completions.
-export class FuzzyMatcher {
+export class FuzzyMatcher implements FilterMatcher {
+  pattern: string
   chars: number[] = []
   folded: number[] = []
   astral: boolean
@@ -29,7 +43,7 @@ export class FuzzyMatcher {
   score = 0
   matched: readonly number[] = []
 
-  constructor(readonly pattern: string) {
+  public setPattern(pattern: string) {
     for (let p = 0; p < pattern.length;) {
       let char = codePointAt(pattern, p), size = codePointSize(char)
       this.chars.push(char)
@@ -40,20 +54,13 @@ export class FuzzyMatcher {
     this.astral = pattern.length != this.chars.length
   }
 
-  ret(score: number, matched: readonly number[]) {
+  private ret(score: number, matched: readonly number[]) {
     this.score = score
     this.matched = matched
     return this
   }
 
-  // Matches a given word (completion) against the pattern (input).
-  // Will return a boolean indicating whether there was a match and,
-  // on success, set `this.score` to the score, `this.matched` to an
-  // array of `from, to` pairs indicating the matched parts of `word`.
-  //
-  // The score is a number that is more negative the worse the match
-  // is. See `Penalty` above.
-  match(word: string): {score: number, matched: readonly number[]} | null {
+  public match(word: string): {score: number, matched: readonly number[]} | null {
     if (this.pattern.length == 0) return this.ret(Penalty.NotFull, [])
     if (word.length < this.pattern.length) return null
     let {chars, folded, any, precise, byWord} = this
@@ -133,7 +140,7 @@ export class FuzzyMatcher {
       : this.result((any[0] ? Penalty.NotStart : 0) + Penalty.CaseFold + Penalty.Gap, any, word)
   }
 
-  result(score: number, positions: number[], word: string) {
+  private result(score: number, positions: number[], word: string) {
     let result: number[] = [], i = 0
     for (let pos of positions) {
       let to = pos + (this.astral ? codePointSize(codePointAt(word, pos)) : 1)
@@ -145,12 +152,13 @@ export class FuzzyMatcher {
 }
 
 
-export class StrictMatcher {
+export class StrictMatcher implements FilterMatcher {
+  pattern: string
   matched: readonly number[] = []
   score: number = 0
   folded: string
 
-  constructor(readonly pattern: string) {
+  public setPattern(pattern: string) {
     this.folded = pattern.toLowerCase()
   }
 

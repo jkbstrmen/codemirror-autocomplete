@@ -37,7 +37,8 @@ function sortOptions(active: readonly ActiveSource[], state: EditorState) {
       }
     } else {
       let pattern = state.sliceDoc(a.from, a.to), match
-      let matcher = conf.filterStrict ? new StrictMatcher(pattern) : new FuzzyMatcher(pattern)
+      let matcher = conf.filterStrict ? new StrictMatcher() : conf.filterMatcher;
+      matcher.setPattern(pattern);
       for (let option of a.result.options) if (match = matcher.match(option.label)) {
         let matched = !option.displayLabel ? match.matched : getMatch ? getMatch(option, match.matched) : []
         addOption(new Option(option, a.source, matched, match.score + (option.boost || 0)))
